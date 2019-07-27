@@ -1,7 +1,11 @@
 package kolibri
 
+import (
+	"gitlab.com/xunleii.io/kolibri/log"
+)
+
 type AnnotationFilter map[string]string
 
-type Kontext interface{}
-
-func NewController(name string, opts ...interface{}) *Kontroller { panic("not implemented") }
+type Kontext struct {
+	log.Logger
+}
