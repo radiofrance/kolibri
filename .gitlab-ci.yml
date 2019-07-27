@@ -1,0 +1,16 @@
+image: golang:1.12
+
+stages:
+  - test
+
+lint:
+  stage: test
+  script:
+    - go fmt $(go list ./...)
+    - go vet $(go list ./...)
+    - go test -v -race $(go list ./...)
+
+compile:
+  stage: test
+  script:
+    - go build -race -ldflags "-extldflags '-static'"
