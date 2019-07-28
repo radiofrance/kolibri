@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 )
 
 type Kind interface {
@@ -17,7 +18,12 @@ type Kind interface {
 }
 
 type Informer interface {
+	AddEventHandler(handler cache.ResourceEventHandler)
+
 	Informer() interface{}
 	HasSynced() bool
+
 	Get(namespace, name string) (metav1.Object, error)
+
+	Start(<-chan struct{})
 }
