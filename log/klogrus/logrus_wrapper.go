@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.uber.org/zap/zapcore"
 
-	"gitlab.com/xunleii.io/kolibri/log"
+	"github.com/radiofrance/kolibri/log"
 )
 
 type core logrus.FieldLogger

@@ -1,4 +1,4 @@
-module gitlab.com/xunleii.io/kolibri
+module github.com/radiofrance/kolibri
 
 go 1.12
 

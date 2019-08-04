@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"gitlab.com/xunleii.io/kolibri/log"
-	"gitlab.com/xunleii.io/kolibri/log/fake"
+	"github.com/radiofrance/kolibri/log"
+	"github.com/radiofrance/kolibri/log/fake"
 )
 
 type Kontroller struct {

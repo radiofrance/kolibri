@@ -19,8 +19,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"gitlab.com/xunleii.io/kolibri/kind"
-	"gitlab.com/xunleii.io/kolibri/log"
+	"github.com/radiofrance/kolibri/kind"
+	"github.com/radiofrance/kolibri/log"
 )
 
 type Handler struct {

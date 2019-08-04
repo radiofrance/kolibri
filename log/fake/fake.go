@@ -1,7 +1,7 @@
 package fake
 
 import (
-	"gitlab.com/xunleii.io/kolibri/log"
+	"github.com/radiofrance/kolibri/log"
 )
 
 type Fake struct{ string }

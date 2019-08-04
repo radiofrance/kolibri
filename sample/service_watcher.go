@@ -10,10 +10,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"gitlab.com/xunleii.io/kolibri"
-	"gitlab.com/xunleii.io/kolibri/kind"
-	"gitlab.com/xunleii.io/kolibri/log"
-	"gitlab.com/xunleii.io/kolibri/log/kzap"
+	"github.com/radiofrance/kolibri"
+	"github.com/radiofrance/kolibri/kind"
+	"github.com/radiofrance/kolibri/log"
+	"github.com/radiofrance/kolibri/log/kzap"
 )
 
 func handler(ktx *kolibri.Kontext, event string, obj v1.Object) error {

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap/zapcore"
 
-	"gitlab.com/xunleii.io/kolibri/log"
+	"github.com/radiofrance/kolibri/log"
 )
 
 type klogrusTestSuite struct {

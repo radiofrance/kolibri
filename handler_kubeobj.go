@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"gitlab.com/xunleii.io/kolibri/kind"
+	"github.com/radiofrance/kolibri/kind"
 )
 
 // kindOption wraps a function which verify the validity of a kind.

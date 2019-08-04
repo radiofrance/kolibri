@@ -1,7 +1,7 @@
 package kolibri
 
 import (
-	"gitlab.com/xunleii.io/kolibri/log"
+	"github.com/radiofrance/kolibri/log"
 )
 
 type AnnotationFilter map[string]string
