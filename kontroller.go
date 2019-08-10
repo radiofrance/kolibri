@@ -2,10 +2,9 @@ package kolibri
 
 import (
 	"context"
-	"reflect"
 
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/radiofrance/kolibri/log"
@@ -16,17 +15,21 @@ type Kontroller struct {
 	name string
 
 	log.Logger
-	kube     kubernetes.Interface
-	handlers []*Handler
+	kube            kubernetes.Interface
+	handlers        []*Handler
+	updatePolicyFnc UpdateHandlerPolicy
 }
 
-func NewController(name string, client kubernetes.Interface, opts ...interface{}) *Kontroller {
+func NewController(name string, kube kubernetes.Interface, opts ...interface{}) *Kontroller {
 	return &Kontroller{
 		name:   name,
+		kube:   kube,
 		Logger: fake.New(),
-		kube:   client,
 	}
 }
+
+// UpdateHandlerPolicy that defines when two kubernetes objects are different.
+type UpdateHandlerPolicy func(old, new metav1.Object) bool
 
 func (k *Kontroller) SetLogger(logger log.Logger) { k.Logger = logger }
 func (k *Kontroller) Register(handlers ...*Handler) error {
@@ -46,9 +49,8 @@ func (k *Kontroller) Run(ctx context.Context) error {
 func (k *Kontroller) newContext(name string) *Kontext { return &Kontext{k} }
 func (k *Kontroller) handleError(err error)           {}
 
+//TODO: Make a real copy
 func (k *Kontroller) copy() *Kontroller { return k }
 
-func (k *Kontroller) setUpdatePolicy(policy UpdateHandlerPolicy)      { return }
-func (k *Kontroller) updatePolicy(old v1.Object, curr v1.Object) bool { return false }
-
-func (k *Kontroller) client(clientType reflect.Type) (interface{}, error) { return k.kube, nil }
+func (k *Kontroller) setUpdatePolicy(policy UpdateHandlerPolicy)              { k.updatePolicyFnc = policy }
+func (k *Kontroller) updatePolicy(old metav1.Object, curr metav1.Object) bool { return false }

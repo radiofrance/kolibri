@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/radiofrance/kolibri"
-	"github.com/radiofrance/kolibri/kind"
+	kkind "github.com/radiofrance/kolibri/kind/kubernetes"
 	"github.com/radiofrance/kolibri/log"
 	"github.com/radiofrance/kolibri/log/kzap"
 )
@@ -32,7 +32,7 @@ func main() {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		config, err = clientcmd.BuildConfigFromFlags("", "/home/anicolaie/.kube/config")
+		config, err = clientcmd.BuildConfigFromFlags("", "/home/xunleii/.kube/config")
 		handleErr(err)
 	}
 
@@ -43,8 +43,8 @@ func main() {
 	ktr.Logger = kzap.New(zap.NewExample())
 
 	svc, err := ktr.NewHandler(
+		kkind.CoreV1(client).Service(),
 		kolibri.OnAllNamespaces(),
-		kolibri.Kind(&kind.Service{}),
 
 		kolibri.WithUpdatePolicy(func(old, new v1.Object) bool { return old.GetResourceVersion() != new.GetResourceVersion() }),
 
