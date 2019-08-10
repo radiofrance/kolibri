@@ -31,17 +31,17 @@ type eventRegistry struct {
 // Theses elements are provided by Option interface.
 type handlerBuildContext struct {
 	informerOpts sharedInformerOptions
-	ktrlOpts     kontrolerOptions
+	hdlrOpts     handlerOptions
 	eventOpts    eventOptions
 }
 
 type sharedInformerOptions []informers.SharedInformerOption
 
-// kontrolerOption wraps functions used to configure the handler controller.
-type kontrolerOption func(*Kontroller) error
-type kontrolerOptions []kontrolerOption
+// handlerOption wraps functions used to configure the handler directly.
+type handlerOption func(*Handler) error
+type handlerOptions []handlerOption
 
-func (o kontrolerOptions) apply(k *Kontroller) error {
+func (o handlerOptions) apply(k *Handler) error {
 	for _, opt := range o {
 		err := opt(k)
 		if err != nil {

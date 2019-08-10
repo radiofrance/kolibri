@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"go.uber.org/zap"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -13,7 +14,7 @@ import (
 	"github.com/radiofrance/kolibri"
 	kkind "github.com/radiofrance/kolibri/kind/kubernetes"
 	"github.com/radiofrance/kolibri/log"
-	"github.com/radiofrance/kolibri/log/kzap"
+	"github.com/radiofrance/kolibri/log/klogrus"
 )
 
 func handler(ktx *kolibri.Kontext, event string, obj v1.Object) error {
@@ -39,8 +40,10 @@ func main() {
 	client, err := kubernetes.NewForConfig(config)
 	handleErr(err)
 
-	ktr := kolibri.NewController("service_watcher", client)
-	ktr.Logger = kzap.New(zap.NewExample())
+	ktr, err := kolibri.NewController("service_watcher", client)
+	handleErr(err)
+
+	ktr.SetLogger(klogrus.New(logrus.New()))
 
 	svc, err := ktr.NewHandler(
 		kkind.CoreV1(client).Service(),
@@ -57,6 +60,7 @@ func main() {
 	err = ktr.Register(svc)
 	handleErr(err)
 
-	err = ktr.Run(context.TODO())
+	ctx, _ := context.WithTimeout(context.Background(), 15*time.Minute)
+	err = ktr.Run(ctx)
 	handleErr(err)
 }

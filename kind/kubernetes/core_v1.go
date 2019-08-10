@@ -42,3 +42,26 @@ func (i serviceInformer) AddEventHandler(handler cache.ResourceEventHandler) {
 	i.informer.Informer().AddEventHandler(handler)
 }
 func (i serviceInformer) Start(chanStop <-chan struct{}) { i.factory.Start(chanStop) }
+
+type pod struct{ CoreV1Interface }
+type podInformer struct {
+	informer corev1.PodInformer
+	factory  informers.SharedInformerFactory
+}
+
+func (c CoreV1Interface) Pod() *pod { return &pod{CoreV1Interface: c} }
+
+func (pod) Name() string { return "Pod" }
+func (k pod) Informer(resync time.Duration, options ...informers.SharedInformerOption) kind.Informer {
+	factory := informers.NewSharedInformerFactoryWithOptions(k.client.(kubernetes.Interface), resync, options...)
+	return &podInformer{informer: factory.Core().V1().Pods(), factory: factory}
+}
+func (i podInformer) Informer() interface{} { return i.informer }
+func (i podInformer) HasSynced() bool       { return i.informer.Informer().HasSynced() }
+func (i podInformer) Get(namespace, name string) (metav1.Object, error) {
+	return i.informer.Lister().Pods(namespace).Get(name)
+}
+func (i podInformer) AddEventHandler(handler cache.ResourceEventHandler) {
+	i.informer.Informer().AddEventHandler(handler)
+}
+func (i podInformer) Start(chanStop <-chan struct{}) { i.factory.Start(chanStop) }

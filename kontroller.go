@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"golang.org/x/sync/errgroup"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"golang.org/x/xerrors"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/radiofrance/kolibri/log"
@@ -12,45 +12,49 @@ import (
 )
 
 type Kontroller struct {
-	name string
+	kubernetes.Interface
 
-	log.Logger
-	kube            kubernetes.Interface
-	handlers        []*Handler
-	updatePolicyFnc UpdateHandlerPolicy
+	name   string
+	ctx    context.Context
+	logger log.Logger
+
+	handlers []*Handler
 }
 
-func NewController(name string, kube kubernetes.Interface, opts ...interface{}) *Kontroller {
+func NewController(name string, client kubernetes.Interface, opts ...interface{}) (*Kontroller, error) {
+	if client == nil {
+		return nil, xerrors.New("client cannot be nil")
+	}
+
 	return &Kontroller{
-		name:   name,
-		kube:   kube,
-		Logger: fake.New(),
+		Interface: client,
+		name:      name,
+		logger:    fake.New(),
+	}, nil
+}
+
+func (ktr *Kontroller) SetLogger(logger log.Logger) {
+	if logger != nil {
+		ktr.logger = logger
 	}
 }
-
-// UpdateHandlerPolicy that defines when two kubernetes objects are different.
-type UpdateHandlerPolicy func(old, new metav1.Object) bool
-
-func (k *Kontroller) SetLogger(logger log.Logger) { k.Logger = logger }
-func (k *Kontroller) Register(handlers ...*Handler) error {
-	k.handlers = append(k.handlers, handlers...)
+func (ktr *Kontroller) Register(handlers ...*Handler) error {
+	ktr.handlers = append(ktr.handlers, handlers...)
 	return nil
 }
-func (k *Kontroller) Run(ctx context.Context) error {
+func (ktr *Kontroller) Run(ctx context.Context) error {
 	errg, ctx := errgroup.WithContext(ctx)
 
-	for _, handler := range k.handlers {
-		errg.Go(func() error { return handler.Run(ctx) })
+	for _, handler := range ktr.handlers {
+		errg.Go(func() error { return handler.Run(ctx, ktr) })
 	}
 
 	return errg.Wait()
 }
 
-func (k *Kontroller) newContext(name string) *Kontext { return &Kontext{k} }
-func (k *Kontroller) handleError(err error)           {}
-
-//TODO: Make a real copy
-func (k *Kontroller) copy() *Kontroller { return k }
-
-func (k *Kontroller) setUpdatePolicy(policy UpdateHandlerPolicy)              { k.updatePolicyFnc = policy }
-func (k *Kontroller) updatePolicy(old metav1.Object, curr metav1.Object) bool { return false }
+func (ktr *Kontroller) context(name string) *Kontext {
+	return &Kontext{
+		Context: context.WithValue(ktr.ctx, KontextKey("name"), name),
+		Logger:  ktr.logger.Named(name),
+	}
+}

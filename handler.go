@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -13,12 +14,25 @@ import (
 	"github.com/radiofrance/kolibri/kind"
 )
 
+// UpdateHandlerPolicy that defines when two kubernetes objects are different.
+type UpdateHandlerPolicy func(old, new metav1.Object) bool
+
+// DefaultUpdateHandlerPolicy returns true only when the resource version changed.
+func DefaultUpdateHandlerPolicy(old, new metav1.Object) bool {
+	return old.GetResourceVersion() != new.GetResourceVersion()
+}
+
+// AlwaysUpdateHandlerPolicy always returns true.
+func AlwaysUpdateHandlerPolicy(old, new metav1.Object) bool { return true }
+
 // Handler is the main object of Kolibri. Like http.Handler, this object is used
 // to "handle" events which occurs on the kubernetes cluster.
 // TODO: Add more information
 type Handler struct {
-	ktr    *Kontroller
-	events eventRegistry
+	ktx *Kontext
+
+	events       eventRegistry
+	updatePolicy UpdateHandlerPolicy
 
 	kind     kind.Kind
 	informer kind.Informer
@@ -27,11 +41,11 @@ type Handler struct {
 	recorder record.EventRecorder
 }
 
-func (k *Kontroller) NewHandler(kind kind.Kind, opts ...Option) (*Handler, error) {
+func (ktr *Kontroller) NewHandler(knd kind.Kind, opts ...Option) (*Handler, error) {
 	ctx := &handlerBuildContext{}
 
-	if kind == nil {
-		return nil, xerrors.New("kind can't be nil")
+	if knd == nil {
+		return nil, xerrors.New("knd can't be nil")
 	}
 
 	for _, opt := range opts {
@@ -45,22 +59,17 @@ func (k *Kontroller) NewHandler(kind kind.Kind, opts ...Option) (*Handler, error
 	}
 
 	handler := &Handler{
-		ktr:      k.copy(),
-		kind:     kind,
-		informer: kind.Informer(5*time.Second, ctx.informerOpts...),
-		queue: workqueue.NewNamedRateLimitingQueue(
-			workqueue.DefaultControllerRateLimiter(),
-			fmt.Sprintf("%s:%s:%s/%s@%d", "kolibris", k.name, kind.APIVersion(), kind.Name(), uuid.New().String()),
-		),
+		ktx:      ktr.context(fmt.Sprintf("kolibri::%s::%s@%s", ktr.name, kind.FullName(knd), uuid.New().String())),
+		kind:     knd,
+		informer: knd.Informer(5*time.Second, ctx.informerOpts...),
 	}
-	handler.ktr.Logger = k.Named(fmt.Sprintf("%s/%s", kind.APIVersion(), kind.Name()))
 	handler.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    handler.addHandler,
 		UpdateFunc: handler.updateHandler,
 		DeleteFunc: handler.deleteHandler,
 	})
 
-	if err := ctx.ktrlOpts.apply(handler.ktr); err != nil {
+	if err := ctx.hdlrOpts.apply(handler); err != nil {
 		return nil, err
 	}
 	if err := ctx.eventOpts.apply(&handler.events); err != nil {

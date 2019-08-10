@@ -43,8 +43,8 @@ func WithUpdatePolicy(policy UpdateHandlerPolicy) Option {
 			return xerrors.Errorf("update policy cannot be nil")
 		}
 
-		ctx.ktrlOpts = append(ctx.ktrlOpts, func(ktr *Kontroller) error {
-			ktr.setUpdatePolicy(policy)
+		ctx.hdlrOpts = append(ctx.hdlrOpts, func(hdlr *Handler) error {
+			hdlr.updatePolicy = policy
 			return nil
 		})
 		return nil

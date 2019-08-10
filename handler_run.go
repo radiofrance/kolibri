@@ -11,40 +11,37 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-
-	"github.com/radiofrance/kolibri/kind"
+	"k8s.io/client-go/util/workqueue"
 )
 
-func (h Handler) Run(ctx context.Context) error {
-	kk := h.ktr.kube.(*kubernetes.Clientset)
+func (h *Handler) Run(ctx context.Context, ktr *Kontroller) error {
+	h.queue = workqueue.NewNamedRateLimitingQueue(
+		workqueue.DefaultControllerRateLimiter(),
+		h.ktx.Value(KontextKey("name")).(string),
+	)
+	defer h.queue.ShutDown()
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(h.ktr.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kk.CoreV1().Events("")})
-	h.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "kolibri"})
+	eventBroadcaster.StartLogging(h.ktx.Debugf)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ktr.CoreV1().Events("")})
+	h.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: h.ktx.Value(KontextKey("name")).(string)})
 
-	defer h.queue.ShutDown()
-	// TODO: Stop run with context
-	chanStop := make(chan struct{}, 10)
-
-	h.informer.Start(chanStop)
-
-	if ok := cache.WaitForCacheSync(chanStop, h.informer.HasSynced); !ok {
+	h.informer.Start(ctx.Done())
+	if ok := cache.WaitForCacheSync(ctx.Done(), h.informer.HasSynced); !ok {
 		panic("failed to wait for caches to sync")
 	}
 
 	for i := 0; i < 10; i++ {
 		go wait.Until(func() {
 			h.worker()
-		}, time.Second, chanStop)
+		}, time.Second, ctx.Done())
 	}
 
-	<-chanStop
+	<-ctx.Done()
 	return nil
 }
 
@@ -61,7 +58,7 @@ func (h *Handler) syncHandler(event event) error {
 		// Resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			h.ktr.Errorf("%s '%s' in work queue no longer exists: %s", strings.ToLower(h.kind.Name()), key, err)
+			h.ktx.Errorf("%s '%s' in work queue no longer exists: %s", strings.ToLower(h.kind.Name()), key, err)
 			return nil
 		}
 		return xerrors.Errorf("failed to synchronize handler: %w", err)
@@ -77,19 +74,23 @@ func (h *Handler) syncHandler(event event) error {
 	case deleteEvent:
 		handler = handlerFunc(h.events.DeleteHandlerFunc)
 	default:
-		h.ktr.Warnf("Invalid event type '%i' for %s... event skipped", event._type, objId)
+		h.ktx.Warnf("Invalid event type '%i' for %s... event skipped", event._type, objId)
 		return nil
 	}
 
-	if err = handler(h.ktr.newContext(key), obj); err != nil {
+	if handler == nil {
+		return nil
+	}
+
+	if err = handler(h.ktx.SubContext(key), obj); err != nil {
 		return err
 	}
 
 	if robj, ok := obj.(runtime.Object); ok {
 		h.recorder.Eventf(
 			robj,
-			corev1.EventTypeNormal, "synced",
-			"%s '%s' synced successfully", kind.FullName(h.kind), objId,
+			corev1.EventTypeNormal, "Synced",
+			"Successfully synced by %s", h.ktx.Value(KontextKey("name")).(string),
 		)
 	}
 	return nil

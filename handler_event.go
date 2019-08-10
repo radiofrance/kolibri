@@ -28,7 +28,7 @@ func (h *Handler) enqueueWith(_type eventType, object metav1.Object) error {
 	return nil
 }
 
-func (h Handler) baseHandler(obj interface{}) (metav1.Object, error) {
+func (h *Handler) baseHandler(obj interface{}) (metav1.Object, error) {
 	var kobj metav1.Object
 	var ok bool
 
@@ -37,58 +37,58 @@ func (h Handler) baseHandler(obj interface{}) (metav1.Object, error) {
 		if !ok {
 			return nil, xerrors.New("error decoding object, invalid type")
 		}
-		h.ktr.Debugf("tombstone found", kobj.GetName())
+		h.ktx.Debugf("tombstone found", kobj.GetName())
 		kobj, ok = tombstone.Obj.(metav1.Object)
 		if !ok {
 			return nil, xerrors.New("error decoding object tombstone, invalid type")
 		}
-		h.ktr.Debugf("recovered deleted object '%s' from tombstone", kobj.GetName())
+		h.ktx.Debugf("recovered deleted object '%s' from tombstone", kobj.GetName())
 	}
 	return kobj, nil
 }
 
-func (h Handler) addHandler(curr interface{}) {
+func (h *Handler) addHandler(curr interface{}) {
 	currObj, err := h.baseHandler(curr)
 	if err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to get Kubernetes object: %s", err)
 		return
 	}
 
 	if err = h.enqueueWith(createEvent, currObj); err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }
 
 func (h *Handler) updateHandler(old, new interface{}) {
 	oldObj, err := h.baseHandler(old)
 	if err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to get Kubernetes object: %s", err)
 		return
 	}
 
 	newObj, err := h.baseHandler(new)
 	if err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to get Kubernetes object: %s", err)
 		return
 	}
 
-	if !h.ktr.updatePolicyFnc(oldObj, newObj) {
+	if !h.updatePolicy(oldObj, newObj) {
 		return
 	}
 
 	if err = h.enqueueWith(updateEvent, newObj); err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }
 
 func (h *Handler) deleteHandler(curr interface{}) {
 	currObj, err := h.baseHandler(curr)
 	if err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to get Kubernetes object: %s", err)
 		return
 	}
 
 	if err = h.enqueueWith(deleteEvent, currObj); err != nil {
-		h.ktr.handleError(err)
+		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }
