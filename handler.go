@@ -61,7 +61,7 @@ func (ktr *Kontroller) NewHandler(knd kind.Kind, opts ...Option) (*Handler, erro
 	handler := &Handler{
 		ktx:      ktr.context(fmt.Sprintf("kolibri::%s::%s@%s", ktr.name, kind.FullName(knd), uuid.New().String())),
 		kind:     knd,
-		informer: knd.Informer(5*time.Second, ctx.informerOpts...),
+		informer: knd.Informer(250*time.Millisecond, ctx.informerOpts...),
 	}
 	handler.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    handler.addHandler,

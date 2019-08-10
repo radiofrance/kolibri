@@ -57,6 +57,7 @@ func (h *Handler) syncHandler(event event) error {
 	if err != nil {
 		// Resource may no longer exist, in which case we stop
 		// processing.
+		// FIXME always called when an object is destroyed
 		if errors.IsNotFound(err) {
 			h.ktx.Errorf("%s '%s' in work queue no longer exists: %s", strings.ToLower(h.kind.Name()), key, err)
 			return nil
