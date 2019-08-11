@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-func (h *Handler) Run(ctx context.Context, ktr *Kontroller) error {
+func (h *Handler) Run(ctx context.Context, ktr *Kontroller, threadiness int) error {
 	h.queue = workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
 		h.ktx.Value(KontextKey("name")).(string),
@@ -35,7 +35,7 @@ func (h *Handler) Run(ctx context.Context, ktr *Kontroller) error {
 		panic("failed to wait for caches to sync")
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < threadiness; i++ {
 		go wait.Until(func() {
 			h.worker()
 		}, time.Second, ctx.Done())

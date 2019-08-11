@@ -18,7 +18,7 @@ type Kind interface {
 type Informer interface {
 	AddEventHandler(handler cache.ResourceEventHandler)
 
-	Informer() interface{}
+	Informer() cache.SharedIndexInformer
 	HasSynced() bool
 
 	Get(namespace, name string) (metav1.Object, error)

@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+type metaKeyFunc func(interface{}) (string, error)
 type eventType byte
 type event struct {
 	key   string
@@ -19,8 +20,8 @@ const (
 	deleteEvent
 )
 
-func (h *Handler) enqueueWith(_type eventType, object metav1.Object) error {
-	key, err := cache.MetaNamespaceKeyFunc(object)
+func (h *Handler) enqueueWith(_type eventType, object metav1.Object, fnc metaKeyFunc) error {
+	key, err := fnc(object)
 	if err != nil {
 		return xerrors.Errorf("failed to enqueue '%s/%s@%s': %w", object.GetNamespace(), object.GetName(), object.GetResourceVersion(), err)
 	}
@@ -54,7 +55,7 @@ func (h *Handler) addHandler(curr interface{}) {
 		return
 	}
 
-	if err = h.enqueueWith(createEvent, currObj); err != nil {
+	if err = h.enqueueWith(createEvent, currObj, cache.MetaNamespaceKeyFunc); err != nil {
 		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }
@@ -76,7 +77,7 @@ func (h *Handler) updateHandler(old, new interface{}) {
 		return
 	}
 
-	if err = h.enqueueWith(updateEvent, newObj); err != nil {
+	if err = h.enqueueWith(updateEvent, newObj, cache.MetaNamespaceKeyFunc); err != nil {
 		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }
@@ -88,7 +89,7 @@ func (h *Handler) deleteHandler(curr interface{}) {
 		return
 	}
 
-	if err = h.enqueueWith(deleteEvent, currObj); err != nil {
+	if err = h.enqueueWith(deleteEvent, currObj, cache.DeletionHandlingMetaNamespaceKeyFunc); err != nil {
 		h.ktx.Errorf("failed to enqueue object: %s", err)
 	}
 }

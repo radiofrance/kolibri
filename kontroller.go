@@ -42,11 +42,11 @@ func (ktr *Kontroller) Register(handlers ...*Handler) error {
 	ktr.handlers = append(ktr.handlers, handlers...)
 	return nil
 }
-func (ktr *Kontroller) Run(ctx context.Context) error {
+func (ktr *Kontroller) Run(ctx context.Context, threadiness int) error {
 	errg, ctx := errgroup.WithContext(ctx)
 
 	for _, handler := range ktr.handlers {
-		errg.Go(func() error { return handler.Run(ctx, ktr) })
+		errg.Go(func() error { return handler.Run(ctx, ktr, threadiness) })
 	}
 
 	return errg.Wait()

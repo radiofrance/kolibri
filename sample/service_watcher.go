@@ -61,6 +61,6 @@ func main() {
 	handleErr(err)
 
 	ctx, _ := context.WithTimeout(context.Background(), 15*time.Minute)
-	err = ktr.Run(ctx)
+	err = ktr.Run(ctx, 10)
 	handleErr(err)
 }
