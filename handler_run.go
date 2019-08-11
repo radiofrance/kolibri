@@ -75,7 +75,7 @@ func (h *Handler) syncHandler(event event) error {
 	case deleteEvent:
 		handler = handlerFunc(h.events.DeleteHandlerFunc)
 	default:
-		h.ktx.Warnf("Invalid event type '%i' for %s... event skipped", event._type, objId)
+		h.ktx.Warnf("Invalid event type for %s... event skipped", objId)
 		return nil
 	}
 
