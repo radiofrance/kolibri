@@ -1,7 +1,6 @@
 package kolibri
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 )
 
@@ -17,7 +16,7 @@ type UpdateHandlerFunc handlerFunc
 type DeleteHandlerFunc handlerFunc
 
 // handlerFunc is a generic function that handle an event.
-type handlerFunc func(ktx *Kontext, obj metav1.Object) error
+type handlerFunc func(ktx *Kontext) error
 
 // eventRegistry contains functions called when
 // an event occurs on kubernetes.

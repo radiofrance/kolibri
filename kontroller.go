@@ -7,6 +7,7 @@ import (
 	"golang.org/x/xerrors"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/radiofrance/kolibri/kind"
 	"github.com/radiofrance/kolibri/log"
 	"github.com/radiofrance/kolibri/log/fake"
 )
@@ -52,9 +53,10 @@ func (ktr *Kontroller) Run(ctx context.Context) error {
 	return errg.Wait()
 }
 
-func (ktr *Kontroller) context(name string) *Kontext {
+func (ktr *Kontroller) context(name string, informer kind.Informer) *Kontext {
 	return &Kontext{
-		Context: context.WithValue(ktr.ctx, KontextKey("name"), name),
-		Logger:  ktr.logger.Named(name),
+		Context:  context.WithValue(ktr.ctx, KontextKey("name"), name),
+		Logger:   ktr.logger.Named(name),
+		informer: informer,
 	}
 }

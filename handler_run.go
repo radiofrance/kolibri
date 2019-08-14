@@ -3,8 +3,8 @@ package kolibri
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
+	"unsafe"
 
 	"golang.org/x/xerrors"
 	corev1 "k8s.io/api/core/v1"
@@ -30,8 +30,8 @@ func (h *Handler) Run(ctx context.Context, ktr *Kontroller) error {
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ktr.CoreV1().Events("")})
 	h.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: h.ktx.Value(KontextKey("name")).(string)})
 
-	h.informer.Start(ctx.Done())
-	if ok := cache.WaitForCacheSync(ctx.Done(), h.informer.HasSynced); !ok {
+	h.ktx.informer.Start(ctx.Done())
+	if ok := cache.WaitForCacheSync(ctx.Done(), h.ktx.informer.HasSynced); !ok {
 		panic("failed to wait for caches to sync")
 	}
 
@@ -52,18 +52,7 @@ func (h *Handler) syncHandler(event event) error {
 	if err != nil {
 		return xerrors.Errorf("failed to synchronize handler: %w", err)
 	}
-
-	obj, err := h.informer.Get(namespace, name)
-	if err != nil {
-		// Resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			h.ktx.Errorf("%s '%s' in work queue no longer exists: %s", strings.ToLower(h.kind.Name()), key, err)
-			return nil
-		}
-		return xerrors.Errorf("failed to synchronize handler: %w", err)
-	}
-	objId := fmt.Sprintf("%s/%s@%s", obj.GetNamespace(), obj.GetName(), obj.GetResourceVersion())
+	objId := fmt.Sprintf("%s/%s", namespace, name)
 
 	var handler handlerFunc
 	switch event._type {
@@ -82,11 +71,18 @@ func (h *Handler) syncHandler(event event) error {
 		return nil
 	}
 
-	if err = handler(h.ktx.SubContext(key), obj); err != nil {
+	ktx := h.ktx.HandlerContext(namespace, name)
+	obj, err := ktx.Object()
+
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
-	if robj, ok := obj.(runtime.Object); ok {
+	if err = handler(ktx); err != nil {
+		return err
+	}
+
+	if robj, ok := obj.(runtime.Object); ok && (*[2]uintptr)(unsafe.Pointer(&robj))[1] != 0 {
 		h.recorder.Eventf(
 			robj,
 			corev1.EventTypeNormal, "Synced",

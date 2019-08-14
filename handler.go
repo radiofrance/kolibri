@@ -34,9 +34,6 @@ type Handler struct {
 	events       eventRegistry
 	updatePolicy UpdateHandlerPolicy
 
-	kind     kind.Kind
-	informer kind.Informer
-
 	queue    workqueue.RateLimitingInterface
 	recorder record.EventRecorder
 }
@@ -58,12 +55,12 @@ func (ktr *Kontroller) NewHandler(knd kind.Kind, opts ...Option) (*Handler, erro
 		return nil, xerrors.Errorf("at least one event handler (On...) must be provided")
 	}
 
+	ktxName := fmt.Sprintf("kolibri.%s.%s@%s", ktr.name, kind.FullName(knd), uuid.New().String())
+	ktxInformer := knd.Informer(5*time.Second, ctx.informerOpts...)
 	handler := &Handler{
-		ktx:      ktr.context(fmt.Sprintf("kolibri::%s::%s@%s", ktr.name, kind.FullName(knd), uuid.New().String())),
-		kind:     knd,
-		informer: knd.Informer(5*time.Second, ctx.informerOpts...),
+		ktx: ktr.context(ktxName, ktxInformer),
 	}
-	handler.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler.ktx.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    handler.addHandler,
 		UpdateFunc: handler.updateHandler,
 		DeleteFunc: handler.deleteHandler,
