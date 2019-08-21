@@ -20,7 +20,7 @@ type Kontroller struct {
 	logger log.Logger
 }
 
-func NewController(name string, client kubernetes.Interface, opts ...interface{}) (*Kontroller, error) {
+func NewController(name string, client kubernetes.Interface) (*Kontroller, error) {
 	if client == nil {
 		return nil, xerrors.New("client cannot be nil")
 	}
