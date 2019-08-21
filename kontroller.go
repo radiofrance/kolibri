@@ -18,8 +18,6 @@ type Kontroller struct {
 	name   string
 	ctx    context.Context
 	logger log.Logger
-
-	handlers []*Handler
 }
 
 func NewController(name string, client kubernetes.Interface, opts ...interface{}) (*Kontroller, error) {
@@ -39,14 +37,10 @@ func (ktr *Kontroller) SetLogger(logger log.Logger) {
 		ktr.logger = logger
 	}
 }
-func (ktr *Kontroller) Register(handlers ...*Handler) error {
-	ktr.handlers = append(ktr.handlers, handlers...)
-	return nil
-}
-func (ktr *Kontroller) Run(ctx context.Context) error {
+func (ktr *Kontroller) Run(ctx context.Context, handlers ...*Handler) error {
 	errg, ctx := errgroup.WithContext(ctx)
 
-	for _, handler := range ktr.handlers {
+	for _, handler := range handlers {
 		errg.Go(func() error { return handler.Run(ctx, ktr) })
 	}
 

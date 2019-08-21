@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -42,7 +41,7 @@ func (ktr *Kontroller) NewHandler(knd kind.Kind, opts ...Option) (*Handler, erro
 	ctx := &handlerBuildContext{}
 
 	if knd == nil {
-		return nil, xerrors.New("knd can't be nil")
+		return nil, xerrors.New("kind cannot be nil")
 	}
 
 	for _, opt := range opts {
@@ -55,7 +54,7 @@ func (ktr *Kontroller) NewHandler(knd kind.Kind, opts ...Option) (*Handler, erro
 		return nil, xerrors.Errorf("at least one event handler (On...) must be provided")
 	}
 
-	ktxName := fmt.Sprintf("kolibri.%s.%s@%s", ktr.name, kind.FullName(knd), uuid.New().String())
+	ktxName := fmt.Sprintf("kolibri.%s.%s", ktr.name, kind.FullName(knd))
 	ktxInformer := knd.Informer(5*time.Second, ctx.informerOpts...)
 	handler := &Handler{
 		ktx: ktr.context(ktxName, ktxInformer),
